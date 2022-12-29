@@ -1,12 +1,12 @@
 from collections import deque
 from math import isnan
 import numpy as np
-import pySolver
-import pyOperator as pyOp
-from pyStepper import CvSrchStep, ParabolicStep, StrongWolfe
-from pyStopper import BasicStopper
-from pyProblem import ProblemLinearSymmetric
-from pyLinearSolver import SymLCGsolver
+import genericSolver.pySolver as pySolver
+import genericSolver.pyOperator as pyOp
+from genericSolver.pyStepper import CvSrchStep, ParabolicStep, StrongWolfe
+from genericSolver.pyStopper import BasicStopper
+from genericSolver.pyProblem import ProblemLinearSymmetric
+from genericSolver.pyLinearSolver import SymLCGsolver
 from copy import deepcopy
 
 # Check for avoid Overflow or Underflow

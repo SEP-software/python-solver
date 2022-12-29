@@ -4,14 +4,14 @@ import os
 import re
 import time
 from copy import deepcopy
-from genericSoler.shutil import copyfile
+from shutil import copyfile
 from sys import version_info
 
 import numpy as np
 import pickle, h5py
 import genericSolver.sep_util as sep_util
 # other modules
-import sys_util
+import genericSolver.sys_util as sys_util
 
 # regex to read output of Solver_ops
 re_dpr = re.compile("DOT RESULT(.*)")

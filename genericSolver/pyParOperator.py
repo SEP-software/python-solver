@@ -1,7 +1,7 @@
 #Module containing the definition of the operator class defined by parameter files
 #It takes vector objects from the pyVector class
-import pyOperator as pyop
-import pyVector as pyvec
+import genericSolver.pyOperator as pyop
+import genericSolver.pyVector as pyvec
 import genericSolver.sys_util as sys_util
 
 

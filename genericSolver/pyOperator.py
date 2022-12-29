@@ -5,7 +5,7 @@ from __future__ import division, print_function, absolute_import
 import time
 from copy import deepcopy
 import numpy as np
-from pyVector import vector, superVector
+from genericSolver.pyVector import vector, superVector
 import genericSolver.sep_util as sep_util
 
 

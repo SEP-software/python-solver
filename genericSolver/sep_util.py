@@ -2,10 +2,7 @@
 import re
 import os
 import numpy as np
-try:
-    import sys_util
-except ImportError:
-    import GenericSolver.python.sys_util as sys_util
+import genericSolver.sys_util as sys_util
 
 # Assigning datapath
 HOME = os.environ["HOME"]

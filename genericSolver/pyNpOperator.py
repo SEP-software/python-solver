@@ -1,16 +1,17 @@
+# Module containing the definition of numpy-based operators
+
 from __future__ import division, print_function, absolute_import
 import numpy as np
-import pyVector as pyVec
-from pyCuVector import vectorCupy
-import pyOperator as pyOp
-import sep_util
-import cupy as cp
-from cupyx.scipy.ndimage import convolve, correlate
+import genericSolver.pyVector as pyVec
+import genericSolver.pyOperator as pyOp
+import genericSolver.genericSolver.sep_util as sep_util
+from scipy.signal import convolve, correlate
+from scipy.ndimage import gaussian_filter
 
 
 class MatrixOp(pyOp.Operator):
     """Operator built upon a matrix"""
-
+    
     def __init__(self, matrix, domain, range, outcore=False):
         """Class constructor
         :param matrix   : matrix to use
@@ -24,12 +25,11 @@ class MatrixOp(pyOp.Operator):
             raise TypeError("ERROR! Range vector not a vector object")
         # Setting domain and range of operator and matrix to use during application of the operator
         self.setDomainRange(domain, range)
-        if not (isinstance(matrix, np.ndarray) or isinstance(matrix, cp.ndarray)):
-            raise ValueError("ERROR! matrix has to be a numpy/cupy ndarray")
+        if not isinstance(matrix, np.ndarray):
+            raise ValueError("ERROR! matrix has to be a numpy ndarray")
         self.M = matrix
         self.outcore = outcore
-        self.arr_module = cp.get_array_module(matrix)
-        
+    
     def __str__(self):
         return "MatrixOp"
     
@@ -41,13 +41,13 @@ class MatrixOp(pyOp.Operator):
         model_arr = model.getNdArray()
         if self.outcore:
             [data_arr, data_axis] = sep_util.read_file(data.vecfile)
-            data_arr += self.arr_module.matmul(self.M, model_arr.ravel()).reshape(data_arr.shape)
+            data_arr += np.matmul(self.M, model_arr.ravel()).reshape(data_arr.shape)
             sep_util.write_file(data.vecfile, data_arr, data_axis)
         else:
             data_arr = data.getNdArray()
-            data_arr += self.arr_module.matmul(self.M, model_arr.ravel()).reshape(data_arr.shape)
+            data_arr += np.matmul(self.M, model_arr.ravel()).reshape(data_arr.shape)
         return
-
+    
     def adjoint(self, add, model, data):
         """m = A' * d"""
         self.checkDomainRange(model, data)
@@ -56,81 +56,15 @@ class MatrixOp(pyOp.Operator):
         data_arr = data.getNdArray()
         if self.outcore:
             [model_arr, model_axis] = sep_util.read_file(model.vecfile)
-            model_arr += self.arr_module.matmul(self.M.T.conj(), data_arr.ravel()).reshape(model_arr.shape)
+            model_arr += np.matmul(self.M.H, data_arr.ravel()).reshape(model_arr.shape)
             sep_util.write_file(model.vecfile, model_arr, model_axis)
         else:
             model_arr = model.getNdArray()
-            model_arr += self.arr_module.matmul(self.M.T.conj(), data_arr.ravel()).reshape(model_arr.shape)
+            model_arr += np.matmul(self.M.T.conj(), data_arr.ravel()).reshape(model_arr.shape)
         return
     
     def getNdArray(self):
-        return self.arr_module.array(self.M)
-
-
-class FirstDerivativeOld(pyOp.Operator):
-    def __init__(self, model, sampling=1., axis=0):
-        r"""
-        Compute 2nd order centered first derivative
-
-        .. math::
-            y[i] = 0.5 (x[i+1] - x[i-1]) / dx
-
-        :param model    : vector class; domain vector
-        :param sampling : scalar; sampling step [1.]
-        :param axis     : int; axis along which to compute the derivative [0]
-        """
-        self.sampling = sampling
-        self.data_tmp = model.clone().zero()
-        self.dims = model.getNdArray().shape
-        self.axis = axis if axis >= 0 else len(self.dims) + axis
-        super(FirstDerivativeOld, self).__init__(model, model)
-    
-    def __str__(self):
-        return "1stDer_%d" % self.axis
-    
-    def forward(self, add, model, data):
-        """Forward operator"""
-        self.checkDomainRange(model, data)
-        if add:
-            self.data_tmp.copy(data)
-        data.zero()
-        # Getting Ndarrays
-        x = model.clone().getNdArray()
-        if self.axis > 0:  # need to bring the dim. to derive to first dim
-            x = cp.get_array_module(x).swapaxes(x, self.axis, 0)
-        y = cp.get_array_module(x).zeros(x.shape)
-        
-        y[:-1] = (x[1:] - x[:-1]) / self.sampling / 2
-        
-        if self.axis > 0:  # reset axis order
-            y = cp.get_array_module(y).swapaxes(y, 0, self.axis)
-        data.getNdArray()[:] = y
-        if add:
-            data.scaleAdd(self.data_tmp)
-        return
-    
-    def adjoint(self, add, model, data):
-        """Adjoint operator"""
-        self.checkDomainRange(model, data)
-        if add:
-            self.data_tmp.copy(model)
-        model.zero()
-        # Getting Ndarrays
-        y = data.clone().getNdArray().reshape(self.dims)
-        if self.axis > 0:  # need to bring the dim. to derive to first dim
-            y = cp.get_array_module(y).swapaxes(y, self.axis, 0)
-        x = cp.get_array_module(y).zeros(y.shape)
-        
-        x[0] = -y[0] / self.sampling / 2
-        x[1:-1] = (-y[1:-1] + y[:-2]) / self.sampling / 2
-        x[-1] = y[-2] / self.sampling / 2
-        
-        if self.axis > 0:
-            x = cp.get_array_module(x).swapaxes(x, 0, self.axis)
-        model.getNdArray()[:] = x
-        if add:
-            model.scaleAdd(self.data_tmp)
-        return
+        return np.array(self.M)
 
 
 class FirstDerivative(pyOp.Operator):
@@ -188,12 +122,12 @@ class FirstDerivative(pyOp.Operator):
         # Getting Ndarrays
         x = model.clone().getNdArray()
         if self.axis > 0:  # need to bring the dim. to derive to first dim
-            x = cp.get_array_module(x).swapaxes(x, self.axis, 0)
-        y = cp.get_array_module(x).zeros(x.shape)
-        
+            x = np.swapaxes(x, self.axis, 0)
+        y = np.zeros(x.shape)
+    
         y[:-1] = (x[1:] - x[:-1]) / self.sampling
         if self.axis > 0:  # reset axis order
-            y = cp.get_array_module(x).swapaxes(y, 0, self.axis)
+            y = np.swapaxes(y, 0, self.axis)
         data.getNdArray()[:] = y
         if add:
             data.scaleAdd(data_tmp)
@@ -208,19 +142,19 @@ class FirstDerivative(pyOp.Operator):
         # Getting Ndarrays
         y = data.clone().getNdArray()
         if self.axis > 0:  # need to bring the dim. to derive to first dim
-            y = cp.get_array_module(y).swapaxes(y, self.axis, 0)
-        x = cp.get_array_module(y).zeros(y.shape)
+            y = np.swapaxes(y, self.axis, 0)
+        x = np.zeros(y.shape)
         
         x[:-1] -= y[:-1] / self.sampling
         x[1:] += y[:-1] / self.sampling
         
         if self.axis > 0:
-            x = cp.get_array_module(x).swapaxes(x, 0, self.axis)
+            x = np.swapaxes(x, 0, self.axis)
         model.getNdArray()[:] = x
         if add:
             model.scaleAdd(model_temp)
         return
-    
+
     def _forwardC(self, add, model, data):
         """Forward operator for the 2nd order centered stencil"""
         self.checkDomainRange(model, data)
@@ -230,17 +164,17 @@ class FirstDerivative(pyOp.Operator):
         # Getting Ndarrays
         x = model.clone().getNdArray()
         if self.axis > 0:  # need to bring the dim. to derive to first dim
-            x = cp.get_array_module(x).swapaxes(x, self.axis, 0)
-        y = cp.get_array_module(x).zeros(x.shape)
-        
+            x = np.swapaxes(x, self.axis, 0)
+        y = np.zeros(x.shape)
+    
         y[1:-1] = (.5 * x[2:] - 0.5 * x[:-2]) / self.sampling
         if self.axis > 0:  # reset axis order
-            y = cp.get_array_module(x).swapaxes(y, 0, self.axis)
+            y = np.swapaxes(y, 0, self.axis)
         data.getNdArray()[:] = y
         if add:
             data.scaleAdd(data_tmp)
         return
-    
+
     def _adjointC(self, add, model, data):
         """Adjoint operator for the 2nd order centered stencil"""
         self.checkDomainRange(model, data)
@@ -250,19 +184,19 @@ class FirstDerivative(pyOp.Operator):
         # Getting Ndarrays
         y = data.clone().getNdArray()
         if self.axis > 0:  # need to bring the dim. to derive to first dim
-            y = cp.get_array_module(y).swapaxes(y, self.axis, 0)
-        x = cp.get_array_module(y).zeros(y.shape)
-        
+            y = np.swapaxes(y, self.axis, 0)
+        x = np.zeros(y.shape)
+    
         x[:-2] -= 0.5 * y[1:-1] / self.sampling
         x[2:] += 0.5 * y[1:-1] / self.sampling
-        
+    
         if self.axis > 0:
-            x = cp.get_array_module(x).swapaxes(x, 0, self.axis)
+            x = np.swapaxes(x, 0, self.axis)
         model.getNdArray()[:] = x
         if add:
             model.scaleAdd(model_temp)
         return
-    
+
     def _forwardB(self, add, model, data):
         """Forward operator for the 1st order backward stencil"""
         self.checkDomainRange(model, data)
@@ -272,17 +206,17 @@ class FirstDerivative(pyOp.Operator):
         # Getting Ndarrays
         x = model.clone().getNdArray()
         if self.axis > 0:  # need to bring the dim. to derive to first dim
-            x = cp.get_array_module(x).swapaxes(x, self.axis, 0)
-        y = cp.get_array_module(x).zeros(x.shape)
-        
+            x = np.swapaxes(x, self.axis, 0)
+        y = np.zeros(x.shape)
+    
         y[1:] = (x[1:] - x[:-1]) / self.sampling
         if self.axis > 0:  # reset axis order
-            y = cp.get_array_module(y).swapaxes(y, 0, self.axis)
+            y = np.swapaxes(y, 0, self.axis)
         data.getNdArray()[:] = y
         if add:
             data.scaleAdd(data_tmp)
         return
-    
+
     def _adjointB(self, add, model, data):
         """Adjoint operator for the 1st order backward stencil"""
         self.checkDomainRange(model, data)
@@ -292,14 +226,78 @@ class FirstDerivative(pyOp.Operator):
         # Getting Ndarrays
         y = data.clone().getNdArray()
         if self.axis > 0:  # need to bring the dim. to derive to first dim
-            y = cp.get_array_module(y).swapaxes(y, self.axis, 0)
-        x = cp.get_array_module(y).zeros(y.shape)
-        
+            y = np.swapaxes(y, self.axis, 0)
+        x = np.zeros(y.shape)
+    
         x[:-1] -= y[1:] / self.sampling
         x[1:] += y[1:] / self.sampling
+    
+        if self.axis > 0:
+            x = np.swapaxes(x, 0, self.axis)
+        model.getNdArray()[:] = x
+        if add:
+            model.scaleAdd(model_temp)
+        return
+    
+
+class FirstDerivativeOld(pyOp.Operator):
+    def __init__(self, model, sampling=1., axis=0):
+        r"""
+        Compute 2nd order centered first derivative
+
+        .. math::
+            y[i] = 0.5 (x[i+1] - x[i-1]) / dx
+
+        :param model    : vector class; domain vector
+        :param sampling : scalar; sampling step [1.]
+        :param axis     : int; axis along which to compute the derivative [0]
+        """
+        self.sampling = sampling
+        self.dims = model.getNdArray().shape
+        self.axis = axis if axis >= 0 else len(self.dims) + axis
+        super(FirstDerivativeOld, self).__init__(model, model)
+    
+    def __str__(self):
+        return "1stDer_%d" % self.axis
+    
+    def forward(self, add, model, data):
+        """Forward operator"""
+        self.checkDomainRange(model, data)
+        if add:
+            data_tmp = data.clone()
+        data.zero()
+        # Getting Ndarrays
+        x = model.clone().getNdArray()
+        if self.axis > 0:  # need to bring the dim. to derive to first dim
+            x = np.swapaxes(x, self.axis, 0)
+        y = np.zeros(x.shape)
+        
+        y[:-1] = (x[1:] - x[:-1]) / self.sampling
+        if self.axis > 0:  # reset axis order
+            y = np.swapaxes(y, 0, self.axis)
+        data.getNdArray()[:] = y
+        if add:
+            data.scaleAdd(data_tmp)
+        return
+    
+    def adjoint(self, add, model, data):
+        """Adjoint operator"""
+        self.checkDomainRange(model, data)
+        if add:
+            model_temp = model.clone()
+        model.zero()
+        # Getting Ndarrays
+        y = data.clone().getNdArray()
+        if self.axis > 0:  # need to bring the dim. to derive to first dim
+            y = np.swapaxes(y, self.axis, 0)
+        x = np.zeros(y.shape)
+        
+        x[0] = -y[0] / self.sampling
+        x[1:-1] = (-y[1:-1] + y[:-2]) / self.sampling
+        x[-1] = y[-2] / self.sampling
         
         if self.axis > 0:
-            x = cp.get_array_module(x).swapaxes(x, 0, self.axis)
+            x = np.swapaxes(x, 0, self.axis)
         model.getNdArray()[:] = x
         if add:
             model.scaleAdd(model_temp)
@@ -337,13 +335,13 @@ class SecondDerivative(pyOp.Operator):
         # Getting Ndarrays
         x = model.clone().getNdArray()
         if self.axis > 0:  # need to bring the dim. to derive to first dim
-            x = cp.get_array_module(x).swapaxes(x, self.axis, 0)
-        y = cp.get_array_module(x).zeros_like(x)
+            x = np.swapaxes(x, self.axis, 0)
+        y = np.zeros(x.shape)
         
         y[1:-1] = (x[0:-2] - 2 * x[1:-1] + x[2:]) / self.sampling ** 2
         
         if self.axis > 0:  # reset axis order
-            y = cp.get_array_module(y).swapaxes(y, 0, self.axis)
+            y = np.swapaxes(y, 0, self.axis)
         data.getNdArray()[:] = y
         if add:
             data.scaleAdd(self.data_tmp)
@@ -359,15 +357,15 @@ class SecondDerivative(pyOp.Operator):
         # Getting numpy arrays
         y = data.clone().getNdArray()
         if self.axis > 0:  # need to bring the dim. to derive to first dim
-            y = cp.get_array_module(y).swapaxes(y, self.axis, 0)
-        x = cp.get_array_module(y).zeros_like(y)
+            y = np.swapaxes(y, self.axis, 0)
+        x = np.zeros(y.shape)
         
-        x[0:-2] += y[1:-1] / self.sampling ** 2
-        x[1:-1] -= 2 * y[1:-1] / self.sampling ** 2
-        x[2:] += y[1:-1] / self.sampling ** 2
+        x[0:-2] += (y[1:-1]) / self.sampling ** 2
+        x[1:-1] -= (2 * y[1:-1]) / self.sampling ** 2
+        x[2:] += (y[1:-1]) / self.sampling ** 2
         
         if self.axis > 0:
-            x = cp.get_array_module(x).swapaxes(x, 0, self.axis)
+            x = np.swapaxes(x, 0, self.axis)
         model.getNdArray()[:] = x
         if add:
             model.scaleAdd(self.data_tmp)
@@ -377,8 +375,8 @@ class SecondDerivative(pyOp.Operator):
 class Gradient(pyOp.Operator):
     def __init__(self, model, sampling=None):
         r"""
-        N-Dimensional Gradient operator.
-        
+        N-Dimensional Gradient operator with 2nd order centered stencils
+
         :param model    : vector class; domain vector
         :param sampling : tuple; sampling step [1]
         """
@@ -389,7 +387,6 @@ class Gradient(pyOp.Operator):
         
         self.op = pyOp.Vstack([FirstDerivative(model, sampling=self.sampling[d], axis=d)
                                for d in range(len(self.dims))])
-
         super(Gradient, self).__init__(domain=self.op.domain, range=self.op.range)
     
     def __str__(self):
@@ -400,7 +397,7 @@ class Gradient(pyOp.Operator):
     
     def adjoint(self, add, model, data):
         return self.op.adjoint(add, model, data)
-
+    
     def merge_directions(self, add, model, data, iso=True):
         """
         Merge the different directional contributes, using the L2 norm (iso=True) or the simple sum (iso=False)
@@ -408,7 +405,7 @@ class Gradient(pyOp.Operator):
         self.range.checkSame(model)
         if not add:
             data.zero()
-    
+        
         if iso:
             for v in model.vecs:
                 data.scaleAdd(v.clone().pow(2), 1., 1.)
@@ -452,9 +449,42 @@ class Laplacian(pyOp.Operator):
     
     def adjoint(self, add, model, data):
         return self.op.adjoint(add, model, data)
+        
+        
+class GaussianFilter(pyOp.Operator):
+    def __init__(self, model, sigma):
+        """
+        Gaussian smoothing operator using scipy smoothing:
+        model    = [no default] - vector class; domain vector
+        sigma   = [no default] - scalar or sequence of scalars; standard deviation along the model directions
+        """
+        self.setDomainRange(model, model)
+        self.sigma = sigma
+        self.scaling = np.sqrt(np.prod(np.array(self.sigma)/np.pi))  # in order to have the max amplitude 1
+        return
+    
+    def __str__(self):
+        return "GausFilt"
+    
+    def forward(self, add, model, data):
+        """Forward operator"""
+        self.checkDomainRange(model, data)
+        if not add:
+            data.zero()
+        # Getting Ndarrays
+        model_arr = model.getNdArray()
+        data_arr = data.getNdArray()
+        data_arr[:] += self.scaling * gaussian_filter(model_arr, sigma=self.sigma)
+        return
+    
+    def adjoint(self, add, model, data):
+        """Self-adjoint operator"""
+        self.forward(add, data, model)
+        return
 
 
-class Convolution(pyOp.Operator):
+# TODO Fix ConvNDscipy for Matching Filters applications
+class ConvNDscipy(pyOp.Operator):
     """
     ND convolution square operator in the domain space
 
@@ -468,11 +498,11 @@ class Convolution(pyOp.Operator):
         
         if isinstance(kernel, pyVec.vector):
             self.kernel = kernel.clone().getNdArray()
-        elif isinstance(kernel, cp.ndarray):
+        elif isinstance(kernel, np.ndarray):
             self.kernel = kernel.copy()
         else:
-            raise ValueError("kernel has to be either a vector or a cupy.ndarray")
-        
+            raise ValueError("kernel has to be either a vector or a numpy.ndarray")
+
         # Padding array to avoid edge effects
         pad_width = []
         for len_filt in self.kernel.shape:
@@ -482,7 +512,7 @@ class Convolution(pyOp.Operator):
             else:
                 padding = (half_len, half_len - 1)
             pad_width.append(padding)
-        self.kernel = cp.pad(self.kernel, pad_width, mode='constant')
+        self.kernel = np.pad(self.kernel, pad_width, mode='constant')
         
         if len(domain.shape()) != len(self.kernel.shape):
             raise ValueError("Domain and kernel number of dimensions mismatch")
@@ -490,10 +520,10 @@ class Convolution(pyOp.Operator):
         assert method in ["auto", "direct", "fft"], "method has to be auto, direct or fft"
         self.method = method
         
-        super(Convolution, self).__init__(domain, domain)
+        super(ConvNDscipy, self).__init__(domain, domain)
     
     def __str__(self):
-        return " ConvOp "
+        return "ConvScipy"
     
     def forward(self, add, model, data):
         self.checkDomainRange(model, data)
@@ -501,7 +531,7 @@ class Convolution(pyOp.Operator):
             data.zero()
         modelNd = model.getNdArray()
         dataNd = data.getNdArray()[:]
-        dataNd += convolve(modelNd, self.kernel)
+        dataNd += convolve(modelNd, self.kernel, mode='same', method=self.method)
         return
     
     def adjoint(self, add, model, data):
@@ -510,37 +540,34 @@ class Convolution(pyOp.Operator):
             model.zero()
         modelNd = model.getNdArray()
         dataNd = data.getNdArray()[:]
-        modelNd += correlate(dataNd, self.kernel)
+        modelNd += correlate(dataNd, self.kernel, mode='same', method=self.method)
         return
 
 
 def ZeroPad(domain, pad):
-    if isinstance(domain, vectorCupy):
+    if isinstance(domain, pyVec.vectorIC):
         return _ZeroPadIC(domain, pad)
     elif isinstance(domain, pyVec.superVector):
         # TODO add the possibility to have different padding for each sub-vector
         return pyOp.Dstack([_ZeroPadIC(v, pad) for v in domain.vecs])
     else:
         raise ValueError("ERROR! Provided domain has to be either vector or superVector")
-    
+
 
 def _pad_vectorIC(vec, pad):
-    if not isinstance(vec, vectorCupy):
-        raise ValueError("ERROR! Provided vector must be of vectorCcupy type")
+    if not isinstance(vec, pyVec.vectorIC):
+        raise ValueError("ERROR! Provided vector must be of vectorIC type")
     assert len(vec.shape) == len(pad), "Dimensions of vector and padding mismatch!"
     
-    vec_new_shape = tuple(cp.asarray(vec.shape) + [sum(pad[_]) for _ in range(len(pad))])
-    if isinstance(vec, vectorCupy):
-        return vectorCupy(cp.empty(vec_new_shape, dtype=vec.getNdArray().dtype))
-    else:
-        raise ValueError("ERROR! For now only vectorCupy is supported!")
+    vec_new_shape = tuple(np.asarray(vec.shape) + [sum(pad[_]) for _ in range(len(pad))])
+    return pyVec.vectorIC(np.empty(vec_new_shape, dtype=vec.getNdArray().dtype))
 
 
 class _ZeroPadIC(pyOp.Operator):
     
     def __init__(self, domain, pad):
         """ Zero Pad operator.
-
+        
         To pad 2 values to each side of the first dim, and 3 values to each side of the second dim, use:
             pad=((2,2), (3,3))
         :param domain: vectorIC class
@@ -548,10 +575,10 @@ class _ZeroPadIC(pyOp.Operator):
             Number of samples to pad in each dimension.
             If a single scalar is provided, it is assigned to every dimension.
         """
-        if isinstance(domain, vectorCupy):
+        if isinstance(domain, pyVec.vectorIC):
             self.dims = domain.shape
-            pad = [(pad, pad)] * len(self.dims) if pad is cp.isscalar else list(pad)
-            if (cp.array(pad) < 0).any():
+            pad = [(pad, pad)] * len(self.dims) if pad is np.isscalar else list(pad)
+            if (np.array(pad) < 0).any():
                 raise ValueError('Padding must be positive or zero')
             self.pad = pad
             super(_ZeroPadIC, self).__init__(domain, _pad_vectorIC(domain, self.pad))
@@ -564,8 +591,8 @@ class _ZeroPadIC(pyOp.Operator):
         self.checkDomainRange(model, data)
         if add:
             temp = data.clone()
-        y = cp.pad(model.getNdArray(), self.pad, mode='constant')
-        data.getNdArray()[:] = y
+        y = np.pad(model.arr, self.pad, mode='constant')
+        data.arr = y
         if add:
             data.scaleAdd(temp, 1., 1.)
         return
@@ -575,13 +602,39 @@ class _ZeroPadIC(pyOp.Operator):
         self.checkDomainRange(model, data)
         if add:
             temp = model.clone()
-        x = data.clone().getNdArray()
+        x = data.clone().arr
         for ax, pad in enumerate(self.pad):
-            x = cp.take(x, pad[0] + cp.arange(self.dims[ax]), axis=ax)
+            x = np.take(x, pad[0] + np.arange(self.dims[ax]), axis=ax)
         model.arr = x
         if add:
             model.scaleAdd(temp, 1., 1.)
         return
 
 
+if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    x = pyVec.vectorIC(np.load('../testdata/monarch.npy'))
+    plt.imshow(x.getNdArray(), cmap='gray'), plt.title('Input'), plt.show()
+    
+    # Test ConvNDscipy
+    # kernel = np.array([[0,1,0], [1,-4,1], [0,1,0]])
+    # nh = [5, 10]
+    # hz = np.exp(-0.1 * np.linspace(-(nh[0] // 2), nh[0] // 2, nh[0]) ** 2)
+    # hx = np.exp(-0.03 * np.linspace(-(nh[1] // 2), nh[1] // 2, nh[1]) ** 2)
+    # hz /= np.trapz(hz)  # normalize the integral to 1
+    # hx /= np.trapz(hx)  # normalize the integral to 1
+    # kernel = hz[:, np.newaxis] * hx[np.newaxis, :]
+    # C = ConvNDscipy(x, kernel)
+    # # C.dotTest(True)
+    # blurred = C * x
+    # plt.imshow(blurred.getNdArray(), cmap='gray'), plt.title('Blurred'), plt.show()
 
+    # x = pyVec.vectorIC(np.arange(9).reshape((3, 3)))
+    # pad = ((2,2), (3,3))
+    # P = ZeroPad(x, pad)
+    # P.dotTest()
+    # xx = pyVec.superVector(x, x)
+    # PP = ZeroPad(xx, pad)
+    # PP.dotTest()
+
+    # print(0)

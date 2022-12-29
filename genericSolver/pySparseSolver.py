@@ -1,11 +1,11 @@
 from math import isnan
 import numpy as np
-import pyOperator as pyOp
-import pyVector as pyVec
-from pySolver import Solver
-from pyProblem import ProblemL1Lasso, ProblemL2LinearReg, ProblemLinearReg, ProblemL2Linear
-from pyLinearSolver import LCGsolver, LSQRsolver
-from pyStopper import BasicStopper
+import genericSolver.pyOperator as pyOp
+import genericSolver.pyVector as pyVec
+from genericSolver.pySolver import Solver
+from genericSolver.pyProblem import ProblemL1Lasso, ProblemL2LinearReg, ProblemLinearReg, ProblemL2Linear
+from genericSolver.pyLinearSolver import LCGsolver, LSQRsolver
+from genericSolver.pyStopper import BasicStopper
 from genericSolver.sys_util import logger as logger_class
 
 zero = 10 ** (np.floor(np.log10(np.abs(float(np.finfo(np.float64).tiny)))) + 2)  # Check for avoid Overflow or Underflow

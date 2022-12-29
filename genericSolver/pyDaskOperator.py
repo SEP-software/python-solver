@@ -1,7 +1,7 @@
 # Module containing the definition of Dask-based operator class
-from pyDaskVector import DaskVector, scatter_large_data
-from pyVector import vector
-import pyOperator as Op
+from genericSolver.pyDaskVector import DaskVector, scatter_large_data
+from genericSolver.pyVector import vector
+import genericSolver.pyOperator as Op
 import dask.distributed as daskD
 from dask_util import DaskClient
 import numpy as np

@@ -3,8 +3,8 @@ from math import isnan
 import numpy as np
 
 zero = 10 ** (np.floor(np.log10(np.abs(float(np.finfo(np.float64).tiny)))) + 2)  # Check for avoid Overflow or Underflow
-import pySolver
-from pyProblem import ProblemLinearSymmetric
+import genericSolver.pySolver as pySolver
+from genericSolver.pyProblem import ProblemLinearSymmetric
 
 
 class LCGsolver(pySolver.Solver):

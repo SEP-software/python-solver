@@ -2,8 +2,8 @@
 
 from sys import path
 path.insert(0, '.')
-import pyProblem
-import pyVector as Vec
+import genericSolver.pyProblem as pyProblem
+import genericSolver.pyVector as Vec
 import atexit
 import os
 # Functions and modules necessary for writing on disk

@@ -1,5 +1,5 @@
 # Module containing derived object for basic stopper
-from pyProblem import Problem
+from genericSolver.pyProblem import Problem
 import time
 from timeit import default_timer as timer
 import numpy as np

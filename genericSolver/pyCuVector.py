@@ -1,4 +1,4 @@
-import pyVector as pyVec
+import genericSolver.pyVector as pyVec
 import genericSolver.sep_util as sep_util
 from copy import deepcopy
 import os

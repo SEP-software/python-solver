@@ -1,10 +1,10 @@
 # Module containing the definition of Dask-based vector class
-import pyVector as Vec
+import genericSolver.pyVector as Vec
 import dask.distributed as daskD
 from dask_util import DaskClient
 import numpy as np
 import os
-import genericSolver.sep_util as sep
+import genericSolver.genericSolver.sep_util as sep
 from sys_util import BUF_SIZE
 
 # Verify if SepVector modules are presents

@@ -1,6 +1,6 @@
 # Module containing the definition of abstract inverse problems
-import pyVector as pyVec
-import pyOperator as pyOp
+import genericSolver.pyVector as pyVec
+import genericSolver.pyOperator as pyOp
 from math import isnan
 
 
