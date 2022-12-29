@@ -7,7 +7,7 @@ setup(name='genericSolver',
       author_email='bob@sep.stanford.edu',
       url="http://zapad.stanford.edu/bob/python-solver/-/tree/main/GenericSolver",
           packages=['genericSolver'],
-    install_requires=[ 'numpy>=1.20.1', 'pylops>=2.0.0', 
+    install_requires=[ 'numpy>=1.18.1', 'pylops>=2.0.0', 
                        'h5py>=2.10.0', 'distributed>=2022.1.1','dask-jobqueue>=0.7.5',
                       'matplotlib>=3.3.4', 'scipy>=1.4.2']
    )
