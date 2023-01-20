@@ -1,0 +1,21 @@
+[project]
+
+name='genericSolver'
+version='1.0'
+description='SEP Python solver'
+
+authors=[
+    {name="Ettore Biondi", email="ettore88@sep.stanford.edu"},
+    {name="Guillaume Barnier", email="gbarnier@gmail.com"},
+    {name="Bob Clapp", email="bob@sep.stanford.edu"}
+]
+
+maintainesr=[
+    "bob@sep.stanford.edu"
+]
+dependencies=[ 'numpy>=1.18.1', 'pylops>=2.0.0', 
+'h5py>=2.10.0', 'matplotlib>=3.3.4', 'scipy>=1.4.2']
+
+[build-system]
+build-backend = "flit_core.buildapi"
+requires = ["flit_core >=3.2,<4"]
