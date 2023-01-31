@@ -211,13 +211,13 @@ class ProblemL2Linear(Problem):
         # Gradient vector
         self.grad = self.dmodel.clone()
         # Copying the pointer to data vector
-        print("11SS",sel.data.min())
+        print("11SS",self.data.min())
 
         self.data = data
-        print("22SS",sel.data.min())
+        print("22SS",self.data.min())
         # Residual vector
         self.res = data.clone()
-        print("33SS",sel.data.min())
+        print("33SS",self.data.min())
 
         self.res.zero()
         # Dresidual vector
