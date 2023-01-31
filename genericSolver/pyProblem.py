@@ -224,17 +224,10 @@ class ProblemL2Linear(Problem):
         # Gradient vector
         self.grad = self.dmodel.clone()
         # Copying the pointer to data vector
-        print("11SS", data.min())
-
         self.data = data
-        print("22SS", data.min())
         # Residual vector
         self.res = data.clone()
-        print("33SS", data.min())
-
         self.res.zero()
-        print("TTT", data.min())
-
         # Dresidual vector
         self.dres = self.res.clone()
         # Setting linear operator
@@ -250,7 +243,6 @@ class ProblemL2Linear(Problem):
         # Setting default variables
         self.setDefaults()
         self.linear = True
-        print("SSS", data.min())
         return
 
     def __del__(self):
