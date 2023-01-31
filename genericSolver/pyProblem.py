@@ -233,6 +233,8 @@ class ProblemL2Linear(Problem):
         print("33SS", data.min())
 
         self.res.zero()
+        print("TTT", data.min())
+
         # Dresidual vector
         self.dres = self.res.clone()
         # Setting linear operator
