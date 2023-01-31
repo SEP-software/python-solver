@@ -700,11 +700,11 @@ class vectorIC(vector):
 
     def rand(self, snr=1.0):
         """Fill vector with random number (~U[1,-1]) with a given SNR"""
-        print("in rand")
         rms = np.sqrt(np.mean(np.square(self.getNdArray())))
         amp_noise = 1.0
         if rms != 0.0:
             amp_noise = math.sqrt(3.0 / snr) * rms  # sqrt(3*Power_signal/SNR)
+        amp_noise = 1
         self.getNdArray()[:] = amp_noise * (
             2.0 * np.random.random(self.getNdArray().shape) - 1.0
         )
