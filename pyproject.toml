@@ -1,6 +1,6 @@
 [project]
 
-name='genericSolver'
+name='generic-solver'
 version='1.0.7'
 description='SEP Python solver'
 
