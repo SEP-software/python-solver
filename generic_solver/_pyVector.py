@@ -9,10 +9,10 @@ from sys import version_info
 
 import numpy as np
 import pickle, h5py
-import genericSolver.sep_util as sep_util
+import generic_solver._sep_util as sep_util
 
 # other modules
-import genericSolver.sys_util as sys_util
+import generic_solver._sys_util as sys_util
 
 # regex to read output of Solver_ops
 re_dpr = re.compile("DOT RESULT(.*)")
