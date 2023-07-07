@@ -3,6 +3,7 @@ import re
 import os
 import numpy as np
 import generic_solver._sys_util as sys_util
+import logging
 
 # Assigning datapath
 HOME = os.environ["HOME"]
@@ -27,7 +28,8 @@ else:
 if datapath is None:
     if os.path.isdir("/tmp/"):
         datapath = "/tmp/"
-        print("WARNING! DATAPATH not found. The folder /tmp will be used to write binary files")
+        logger=logging.getLogger("generic_solver")
+        logger.warning("WARNING! DATAPATH not found. The folder /tmp will be used to write binary files")
     else:
         raise IOError("SEP datapath not found\n Set env variable DATAPATH to a folder to write binary files")
 
