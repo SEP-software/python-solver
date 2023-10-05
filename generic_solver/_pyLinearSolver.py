@@ -3,11 +3,9 @@ from math import isnan
 import numpy as np
 
 zero = 10 ** (np.floor(np.log10(np.abs(float(np.finfo(np.float64).tiny)))) + 2)  # Check for avoid Overflow or Underflow
-import genericSolver.pySolver as pySolver
-from genericSolver.pyProblem import ProblemLinearSymmetric
-
-
-class LCGsolver(pySolver.Solver):
+from generic_solver._pySolver import Solver
+from generic_solver._pyProblem import ProblemLinearSymmetric
+class LCGsolver(Solver):
     """Linear-Conjugate Gradient and Steepest-Descent Solver parent object"""
 
     # Default class methods/functions
@@ -363,7 +361,7 @@ def _sym_ortho(a, b):
     return c, s, r
 
 
-class LSQRsolver(pySolver.Solver):
+class LSQRsolver(Solver):
     """
        LSQR Solver parent object following algorithm in Paige and Saunders (1982)
        Find the least-squares solution to a large, sparse, linear system
@@ -681,7 +679,7 @@ class LSQRsolver(pySolver.Solver):
         return
 
 
-class SymLCGsolver(pySolver.Solver):
+class SymLCGsolver(Solver):
     """Linear-Conjugate Gradient Solver (for symmetric systems) parent object"""
 
     # Default class methods/functions

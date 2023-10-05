@@ -2,8 +2,7 @@
 
 from sys import path
 path.insert(0, '.')
-import genericSolver.pyProblem as pyProblem
-import genericSolver.pyVector as Vec
+from generic_solver import (vectorSet, Problem)
 import atexit
 import os
 # Functions and modules necessary for writing on disk
@@ -11,8 +10,8 @@ import pickle
 import re
 import numpy as np
 
-import genericSolver.sep_util as sepu
-from genericSolver.sys_util import mkdir
+import generic_solver._sep_util as sepu
+from generic_solver._sys_util import mkdir
 
 from shutil import rmtree
 from copy import deepcopy
@@ -44,9 +43,9 @@ class Solver:
         self.model = list()
         self.res = list()
         self.grad = list()
-        self.modelSet = Vec.vectorSet()
-        self.resSet = Vec.vectorSet()
-        self.gradSet = Vec.vectorSet()
+        self.modelSet = vectorSet()
+        self.resSet = vectorSet()
+        self.gradSet = vectorSet()
         self.inv_model = None
         self.iter_written = 0
         self.overwrite = True
@@ -104,9 +103,9 @@ class Solver:
         self.model = list()                 # List for model vectors (to save results in-core)
         self.res = list()                   # List for residual vectors (to save results in-core)
         self.grad = list()                  # List for gradient vectors (to save results in-core)
-        self.modelSet = Vec.vectorSet()     # Set for model vectors
-        self.resSet = Vec.vectorSet()       # Set for residual vectors
-        self.gradSet = Vec.vectorSet()      # Set for gradient vectors
+        self.modelSet = vectorSet()     # Set for model vectors
+        self.resSet = vectorSet()       # Set for residual vectors
+        self.gradSet = vectorSet()      # Set for gradient vectors
         self.inv_model = None               # Temporary saved inverted model
         self.overwrite = True               # Flag to overwrite results if first time writing on disk
 
@@ -118,9 +117,9 @@ class Solver:
         self.model = list()  # List for model vectors (to save results in-core)
         self.res = list()  # List for residual vectors (to save results in-core)
         self.grad = list()  # List for gradient vectors (to save results in-core)
-        self.modelSet = Vec.vectorSet()  # Set for model vectors
-        self.resSet = Vec.vectorSet()  # Set for residual vectors
-        self.gradSet = Vec.vectorSet()  # Set for gradient vectors
+        self.modelSet = vectorSet()  # Set for model vectors
+        self.resSet = vectorSet()  # Set for residual vectors
+        self.gradSet = vectorSet()  # Set for gradient vectors
         self.inv_model = None  # Temporary saved inverted model
 
     def get_restart(self, log_file):
@@ -156,7 +155,7 @@ class Solver:
         - model : [problem.model] model to be saved and/or written
         - obj : [problem.obj] objective function to be saved
         """
-        if not isinstance(problem, pyProblem.Problem):
+        if not isinstance(problem, Problem):
             raise TypeError("Input variable is not a Problem object")
         force_save = kwargs.get("force_save", False)
         force_write = kwargs.get("force_write", False)

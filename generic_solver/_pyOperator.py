@@ -5,8 +5,8 @@ from __future__ import division, print_function, absolute_import
 import time
 from copy import deepcopy
 import numpy as np
-from genericSolver.pyVector import vector, superVector
-import genericSolver.sep_util as sep_util
+from generic_solver._pyVector  import vector, superVector
+import generic_solver._sep_util as sep_util
 
 
 class Operator:
@@ -91,14 +91,14 @@ class Operator:
         """Function to set (cloning space) domain and range of the operator"""
         self.domain = domain.cloneSpace()
         self.range = range.cloneSpace()
-        return
+        returnd
 
     def checkDomainRange(self, x, y):
         """Function to check model and data vector sizes"""
         if not self.domain.checkSame(x):
-            raise ValueError(f"Provided x vector {type(x)} does not match operator domain {type(self.domain)}")
+            raise ValueError(f"Provided x vector {x} does not match operator domain {self.domain}")
         if not self.range.checkSame(y):
-            raise ValueError(f"Provided y vector {type(y)} does not match operator range {type(self.range)}")
+            raise ValueError(f"Provided y vector {y} does not match operator range {self.range}")
 
     def powerMethod(self, verbose=False, tol=1e-8, niter=None, eval_min=False, return_vec=False):
         """

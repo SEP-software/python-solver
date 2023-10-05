@@ -1,5 +1,20 @@
-from generic_solver._pyVector import vector as Vector
-from generic_solver._pyVector import vectorIC as VectorIC
-from generic_solver._pyVector import vectorSet as VectorSet
-from generic_solver._pyVector import vectorOC as VectorOC
-from generic_solver._pyVector import superVector as superVector
+
+from generic_solver._pyVector import (superVector, vector, vectorIC,
+                                      vectorOC,vectorSet)
+from generic_solver._pyProblem import (ProblemL2Linear, Problem,ProblemL2LinearReg,
+                                       ProblemL1Lasso,ProblemL2NonLinear,
+                                       ProblemL2NonLinearReg,ProblemL2VpReg,
+                                       ProblemLinearSymmetric)
+from generic_solver._pyStopper import (Stopper, BasicStopper)
+
+from generic_solver._pyOperator import (Vstack, Hstack, IdentityOp,scalingOp,
+                                        NonLinearOperator,VpOperator,
+                                        VstackNonLinearOperator)
+from generic_solver._pyStepper import (Stepper, CvSrchStep,ParabolicStep,
+                                       ParabolicStep,ParabolicStepConst,
+                                       StrongWolfe)
+from generic_solver._pySparseSolver import(ISTAsolver,ISTCsolver, SplitBregmanSolver)
+from generic_solver._pySolver import Solver, Restart
+from generic_solver._pyLinearSolver import (LSQRsolver,SymLCGsolver,LCGsolver)
+from generic_solver._pyNonLinearSolver import(MCMCsolver,LBFGSsolver,
+                                              TNewtonsolver,LBFGSBsolver,NLCGsolver)

@@ -1,12 +1,12 @@
 from math import isnan
 import numpy as np
-import genericSolver.pyOperator as pyOp
-import genericSolver.pyVector as pyVec
-from genericSolver.pySolver import Solver
-from genericSolver.pyProblem import ProblemL1Lasso, ProblemL2LinearReg, ProblemLinearReg, ProblemL2Linear
-from genericSolver.pyLinearSolver import LCGsolver, LSQRsolver
-from genericSolver.pyStopper import BasicStopper
-from genericSolver.sys_util import logger as logger_class
+from generic_solver._pyOperator import Vstack
+from generic_solver._pyProblem import (ProblemL1Lasso,ProblemL2LinearReg)
+from generic_solver._pyStopper import BasicStopper
+from generic_solver._pyVector import superVector
+from generic_solver._pySolver import Solver
+from generic_solver._pyLinearSolver import LCGsolver,LSQRsolver
+from generic_solver._sys_util import logger as logger_class
 
 zero = 10 ** (np.floor(np.log10(np.abs(float(np.finfo(np.float64).tiny)))) + 2)  # Check for avoid Overflow or Underflow
 
@@ -564,15 +564,15 @@ class SplitBregmanSolver(Solver):
         #  we must convert reg_op to a scaled version and epsilon to 1.
         regL2_op_scaled_list = [np.sqrt(problem.epsL2[i]) * problem.regL2_op.ops[i] for i in range(problem.nregsL2)]
         regL1_op_scaled_list = [np.sqrt(problem.epsL1[i]) * problem.regL1_op.ops[i] for i in range(problem.nregsL1)]
-        reg_op = pyOp.Vstack(pyOp.Vstack(regL2_op_scaled_list) if len(regL2_op_scaled_list) != 0 else None,
-                             pyOp.Vstack(regL1_op_scaled_list) if len(regL1_op_scaled_list) != 0 else None)
+        reg_op = Vstack(Vstack(regL2_op_scaled_list) if len(regL2_op_scaled_list) != 0 else None,
+                             Vstack(regL1_op_scaled_list) if len(regL1_op_scaled_list) != 0 else None)
         
         # inner problem
         prior = pyVec.superVector(problem.dataregsL2, breg_d.clone())  # Note: d = 0. TODO is the clone() needed?
         
         linear_problem = ProblemL2Linear(model=sb_mdl.clone(),
-                                         data=pyVec.superVector(problem.data, prior),
-                                         op=pyOp.Vstack(problem.op, reg_op),
+                                         data=superVector(problem.data, prior),
+                                         op=Vstack(problem.op, reg_op),
                                          minBound=problem.minBound,
                                          maxBound=problem.maxBound,
                                          boundProj=problem.boundProj)

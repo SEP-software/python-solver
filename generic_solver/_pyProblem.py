@@ -1,6 +1,10 @@
 # Module containing the definition of abstract inverse problems
-import genericSolver.pyVector as pyVec
-import genericSolver.pyOperator as pyOp
+
+from generic_solver._pyVector import superVector
+from generic_solver._pyOperator import ( Vstack, VpOperator,
+                            IdentityOp, NonLinearOperator,
+                            VstackNonLinearOperator)
+
 from math import isnan
 
 
@@ -403,7 +407,7 @@ class ProblemL2LinearReg(Problem):
         # Setting linear operators
         # Assuming identity operator if regularization operator was not provided
         if reg_op is None:
-            reg_op = pyOp.IdentityOp(self.model)
+            reg_op = IdentityOp(self.model)
         # Checking if space of the prior model is consistent with range of
         # regularization operator
         if self.prior_model is not None:
@@ -411,7 +415,7 @@ class ProblemL2LinearReg(Problem):
                 raise ValueError(
                     "Prior model space no consistent with range of regularization operator"
                 )
-        self.op = pyOp.stackOperator(op, reg_op)  # Modeling operator
+        self.op = Vstack(op, reg_op)  # Modeling operator
         self.epsilon = epsilon  # Regularization weight
         # Checking if a gradient mask was provided
         self.grad_mask = grad_mask
@@ -575,7 +579,7 @@ class ProblemL1Lasso(Problem):
         # Setting linear operator
         self.op = op  # Modeling operator
         # Residual vector (data and model residual vectors)
-        self.res = pyVec.superVector(op.range.clone(), op.domain.clone())
+        self.res = superVector(op.range.clone(), op.domain.clone())
         self.res.zero()
         # Dresidual vector
         self.dres = None  # Not necessary for the inversion
@@ -685,7 +689,7 @@ class ProblemLinearReg(Problem):
         self.boundProj = boundProj
 
         # L1 Regularizations
-        self.regL1_op = None if regsL1 is None else pyOp.Vstack(regsL1)
+        self.regL1_op = None if regsL1 is None else Vstack(regsL1)
         self.nregsL1 = self.regL1_op.n if self.regL1_op is not None else 0
         self.epsL1 = epsL1 if epsL1 is not None else []
         if type(self.epsL1) in [int, float]:
@@ -695,7 +699,7 @@ class ProblemLinearReg(Problem):
         ), "The number of L1 regs and related weights mismatch!"
 
         # L2 Regularizations
-        self.regL2_op = None if regsL2 is None else pyOp.Vstack(regsL2)
+        self.regL2_op = None if regsL2 is None else Vstack(regsL2)
         self.nregsL2 = self.regL2_op.n if self.regL2_op is not None else 0
         self.epsL2 = epsL2 if epsL2 is not None else []
         if type(self.epsL2) in [int, float]:
@@ -732,7 +736,7 @@ class ProblemLinearReg(Problem):
             self.regL1_op.range.clone().zero() if self.nregsL1 != 0 else None
         )
         # this last superVector is instantiated with pointers to res_data and res_regs!
-        self.res = pyVec.superVector(self.res_data, self.res_regsL2, self.res_regsL1)
+        self.res = superVector(self.res_data, self.res_regsL2, self.res_regsL1)
 
         # flags for avoiding extra computations
         self.res_data_already_computed = False
@@ -846,7 +850,7 @@ class ProblemL2NonLinear(Problem):
         # Dresidual vector
         self.dres = self.res.clone()
         # Setting non-linear and linearized operators
-        if isinstance(op, pyOp.NonLinearOperator):
+        if isinstance(op, NonLinearOperator):
             self.op = op
         else:
             raise TypeError("Not provided a non-linear operator!")
@@ -947,8 +951,8 @@ class ProblemL2NonLinearReg(Problem):
         # Setting linear operators
         # Assuming identity operator if regularization operator was not provided
         if reg_op is None:
-            Id_op = pyOp.IdentityOp(self.model)
-            reg_op = pyOp.NonLinearOperator(Id_op, Id_op)
+            Id_op = IdentityOp(self.model)
+            reg_op = NonLinearOperator(Id_op, Id_op)
         # Checking if space of the prior model is constistent with range of regularization operator
         if self.prior_model is not None:
             if not self.prior_model.checkSame(reg_op.range):
@@ -956,10 +960,10 @@ class ProblemL2NonLinearReg(Problem):
                     "Prior model space no constistent with range of regularization operator"
                 )
         # Setting non-linear and linearized operators
-        if not isinstance(op, pyOp.NonLinearOperator):
+        if not isinstance(op, NonLinearOperator):
             raise TypeError("Not provided a non-linear operator!")
         # Setting non-linear stack of operators
-        self.op = pyOp.VstackNonLinearOperator(op, reg_op)
+        self.op = VstackNonLinearOperator(op, reg_op)
         self.epsilon = epsilon  # Regularization weight
         # Residual vector (data and model residual vectors)
         self.res = self.op.nl_op.range.clone()
@@ -1169,7 +1173,7 @@ class ProblemL2VpReg(Problem):
         Note that to save the results of the linear inversion the user has to specify the saving parameters within the setDefaults of the
         linear solver. The results can only be saved on files. To the prefix specified within the lin_solver f_eval_# will be added.
         """
-        if not isinstance(h_op, pyOp.VpOperator):
+        if not isinstance(h_op, VpOperator):
             raise TypeError(
                 "ERROR! Not provided an operator class for the variable projection problem"
             )
@@ -1185,7 +1189,7 @@ class ProblemL2VpReg(Problem):
         # Copying the pointer to data vector
         self.data = data
         # Setting non-linear/linear operator
-        if not isinstance(h_op, pyOp.VpOperator):
+        if not isinstance(h_op, VpOperator):
             raise TypeError("ERROR! Provide a VpOperator operator class for h_op")
         self.h_op = h_op
         # Setting non-linear operator (if any)
@@ -1209,7 +1213,7 @@ class ProblemL2VpReg(Problem):
             if self.g_op_reg is not None:
                 res_reg = self.g_op_reg.nl_op.range.clone()
             elif self.h_op_reg is not None:
-                if not isinstance(h_op_reg, pyOp.VpOperator):
+                if not isinstance(h_op_reg, VpOperator):
                     raise TypeError(
                         "ERROR! Provide a VpOperator operator class for h_op_reg"
                     )
@@ -1221,7 +1225,7 @@ class ProblemL2VpReg(Problem):
                 raise ValueError(
                     "ERROR! If epsilon is provided, then a regularization term must be provided"
                 )
-            self.res = pyVec.superVector(data.clone(), res_reg)
+            self.res = superVector(data.clone(), res_reg)
             # Objective function terms (useful to analyze each term)
             self.obj_terms = [None, None]
         else:

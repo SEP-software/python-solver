@@ -1,12 +1,14 @@
 from collections import deque
 from math import isnan
 import numpy as np
-import genericSolver.pySolver as pySolver
-import genericSolver.pyOperator as pyOp
-from genericSolver.pyStepper import CvSrchStep, ParabolicStep, StrongWolfe
-from genericSolver.pyStopper import BasicStopper
-from genericSolver.pyProblem import ProblemLinearSymmetric
-from genericSolver.pyLinearSolver import SymLCGsolver
+from generic_solver._pySolver import Solver
+from generic_solver._pyStepper import (CvSrchStep, 
+                            ParabolicStep, StrongWolfe)
+from generic_solver._pyStopper import BasicStopper
+from generic_solver._pyLinearSolver import SymLCGsolver
+from generic_solver._pyProblem import ProblemLinearSymmetric
+from generic_solver._pyOperator import scalingOp
+
 from copy import deepcopy
 
 # Check for avoid Overflow or Underflow
@@ -160,7 +162,7 @@ def _betaSD(grad, grad0, dir, logger):
     return beta
 
 
-class NLCGsolver(pySolver.Solver):
+class NLCGsolver(Solver):
     """Non-Linear Conjugate Gradient and Steepest-Descent Solver object"""
 
     # Default class methods/functions
@@ -391,7 +393,7 @@ class NLCGsolver(pySolver.Solver):
         return
 
 
-class LBFGSBsolver(pySolver.Solver):
+class LBFGSBsolver(Solver):
     """L-BFGS-B (Limited-memory Broyden-Fletcher-Goldfarb-Shanno with Bounds) Solver object
        Implementation inspired by the one in the GitHub repo: https://github.com/bgranzow/L-BFGS-B.git
     """
@@ -931,7 +933,7 @@ class LBFGSBsolver(pySolver.Solver):
         self.restart.clear_restart()
 
 
-class TNewtonsolver(pySolver.Solver):
+class TNewtonsolver(Solver):
     """Truncated Newton/Gauss-Newton solver object"""
 
     def __init__(self, stopper, niter_max, HessianOp, stepper=None, niter_min=None, warm_start=True, Newton_prefix=None,
@@ -976,7 +978,7 @@ class TNewtonsolver(pySolver.Solver):
         return
 
 
-class LBFGSsolver(pySolver.Solver):
+class LBFGSsolver(Solver):
     """L-BFGS (Limited-memory Broyden-Fletcher-Goldfarb-Shanno) Solver object"""
 
     def __init__(self, stopper, stepper=None, save_alpha=False, m_steps=None, H0=None, logger=None, save_est=False):
@@ -1280,7 +1282,7 @@ class LBFGSsolver(pySolver.Solver):
             # Making first step-length value Hessian guess if not provided by user
             if iiter == 0 and alpha != 1.0:
                 self.restart.save_parameter("fist_alpha", alpha)
-                self.H0 = pyOp.scalingOp(bfgs_dmodl, alpha) if self.H0 is None else self.H0 * pyOp.scalingOp(bfgs_dmodl,
+                self.H0 = scalingOp(bfgs_dmodl, alpha) if self.H0 is None else self.H0 * scalingOp(bfgs_dmodl,
                                                                                                              alpha)
                 if self.logger:
                     self.logger.addToLog("First step-length value added to first Hessian inverse estimate!")
@@ -1346,7 +1348,7 @@ class LBFGSsolver(pySolver.Solver):
         self.tmp_vector = None
 
 
-class MCMCsolver(pySolver.Solver):
+class MCMCsolver(Solver):
     """Markov chain Monte Carlo sampling algorithm"""
 
     def __init__(self, **kwargs):
