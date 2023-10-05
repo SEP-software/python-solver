@@ -11,8 +11,6 @@ import numpy as np
 import pickle, h5py
 import generic_solver._sep_util as sep_util
 
-
-
 # regex to read output of Solver_ops
 re_dpr = re.compile("DOT RESULT(.*)")
 
