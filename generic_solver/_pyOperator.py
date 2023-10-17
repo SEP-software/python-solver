@@ -18,7 +18,7 @@ class Operator:
         self.domain = domain.cloneSpace()
         self.range = range.cloneSpace()
 
-    def __del__(self):
+    def __del__(self): 
         """Default destructor"""
         return
 
@@ -227,7 +227,7 @@ class Operator:
         """
 
         def _testing(add, dt1, dt2, tol, verbose=False):
-            if isinstance(dt2, np.complex):
+            if isinstance(dt2, np.complex64) or isinstance(dt2, np.complex128):
                 dt2 = np.conj(dt2)
             abs_err = dt1 - dt2
             err_rel = abs_err / abs(dt2)
