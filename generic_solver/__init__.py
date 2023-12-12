@@ -8,7 +8,7 @@ from generic_solver._pyProblem import (ProblemL2Linear, Problem,ProblemL2LinearR
 from generic_solver._pyStopper import (Stopper, BasicStopper)
 
 from generic_solver._pyOperator import (Operator, Vstack, Hstack, IdentityOp,scalingOp,
-                                        NonLinearOperator,VpOperator,
+                                        NonLinearOperator,VpOperator, DiagonalOp,
                                         VstackNonLinearOperator)
 from generic_solver._pyStepper import (Stepper, CvSrchStep,ParabolicStep,
                                        ParabolicStep,ParabolicStepConst,

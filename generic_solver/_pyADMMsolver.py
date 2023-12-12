@@ -1,13 +1,13 @@
 # Module containing the definition of inverse problems where the ADMM method is used
 import pyOperator as pyOp
 import pyVector as pyVec
-from genericSolver.pyLinearSolver import LCGsolver, LSQRsolver
-from genericSolver.pySparseSolver import ISTAsolver
-from genericSolver.pyProblem import Problem, ProblemL1Lasso, ProblemL2LinearReg, ProblemL2Linear, ProblemLinearReg
-from genericSolver.pySolver import Solver
-from genericSolver.pySparseSolver import _soft_thresh
-from genericSolver.pyStopper import BasicStopper
-from genericSolver.genericSolver.sys_util import logger as logger_class
+from generic_solver._pyLinearSolver import LCGsolver, LSQRsolver
+from generic_solver._pySparseSolver import ISTAsolver
+from generic_solver._pyProblem import Problem, ProblemL1Lasso, ProblemL2LinearReg, ProblemL2Linear, ProblemLinearReg
+from generic_solver._pySolver import Solver
+from generic_solver._pySparseSolver import _soft_thresh
+from generic_solver._pyStopper import BasicStopper
+from generic_solver._sys_util import logger as logger_class
 import numpy as np
 from math import isnan
 import matplotlib.pyplot as plt

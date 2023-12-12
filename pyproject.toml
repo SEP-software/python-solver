@@ -14,7 +14,7 @@ maintainesr=[
     "bob@sep.stanford.edu"
 ]
 dependencies=[ 'numpy>=1.18.1', 'pylops>=2.0.0', 
-'h5py>=2.10.0', 'matplotlib>=3.3.4', 'scipy>=1.4.2']
+ 'matplotlib>=3.3.4', 'scipy>=1.4.2']
 
 [build-system]
 build-backend = "flit_core.buildapi"

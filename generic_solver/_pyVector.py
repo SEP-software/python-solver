@@ -6,6 +6,7 @@ import time
 from copy import deepcopy
 from shutil import copyfile
 from sys import version_info
+from generic_solver._pyNormStep import l1_norm, l2_norm, hybrid_norm
 
 import numpy as np
 import pickle
@@ -21,7 +22,9 @@ class vector:
 
     def __init__(self):
         """Default constructor"""
-
+        self._norm="L2"
+        self._transition=1
+        
     def __del__(self):
         """Default destructor"""
 
@@ -44,6 +47,7 @@ class vector:
     def __neg__(self):  # -self
         self.scale(-1)
         return self
+
 
     def __mul__(self, other):  # self * other
         if type(other) in [int, float]:
@@ -95,9 +99,8 @@ class vector:
         """Property to compute the vector size (number of samples)"""
         raise NotImplementedError("size must be overwritten")
 
-    def norm(self, N=2):
+    def norm(self,nrm=2):
         """Function to compute vector N-norm"""
-        raise NotImplementedError("norm must be overwritten")
 
     def zero(self):
         """Function to zero out a vector"""
@@ -111,6 +114,10 @@ class vector:
         """Function to obtain minimum value within a vector"""
         raise NotImplementedError("min must be overwritten")
 
+    def set(self, val):
+        """Function to set all values in the vector"""
+        raise NotImplementedError("set must be overwritten")
+    
     def set(self, val):
         """Function to set all values in the vector"""
         raise NotImplementedError("set must be overwritten")
@@ -351,6 +358,17 @@ class vector:
         raise NotImplementedError("clipVector must be overwritten")
 
 
+    def calcC0C1C2(self):
+        """Calculate derivatives of residual with different norms"""
+        if self._norm=="L2":
+            return l2_norm(self)
+        elif self._norm=="L1":
+            return l1_norm(self)
+        elif self._norm=="hybrid":
+            return hybrid_norm(self)
+        else:
+            raise Exception(f("Unknown norm {self._norm}"))
+           
 # Set of vectors (useful to store results and same-Space vectors together)
 class vectorSet:
     """Class to store different vectors that live in the same Space"""
@@ -427,10 +445,17 @@ class superVector(vector):
     def size(self):
         return sum([self.vecs[idx].size for idx in range(self.n)])
 
-    def norm(self, N=2):
+    def norm(self,nrm=2):
         """Function to compute vector N-norm"""
-        norm = np.power([self.vecs[idx].norm(N) for idx in range(self.n)], N)
-        return np.power(sum(norm), 1.0 / N)
+        for v in self.vecs:
+            if v._norm!="L1" and nrm==1:
+                self._norm="L1"
+        c0,c1,c2 = self.calcC0C1C2()
+        sm= 0
+        for v in c0.vecs():
+            sm+=np.sum(v)
+        return sm
+
 
     def set(self, val):
         """Function to set all values in the vector"""
@@ -624,7 +649,18 @@ class superVector(vector):
             # Writing files (recursively)
             vec_cmp.writeVec(filename_cmp + ext, mode)
         return
-
+    def calcC0C1C2(self):
+        """Calcuate derivatives of norms
+        """
+        c0s=[]
+        c1s=[]
+        c2s=[]
+        for v in self.vecs:
+            c0,c1,c2=v.calcC0C1C2()
+            c0s.append(c0)
+            c1s.append(c1)
+            c2s.append(c2)
+        return SuperVector(*c0s),SuperVector(*c1s),SuperVector(*c2s)
 
 class vectorIC(vector):
     """In-core python vector class"""
@@ -664,9 +700,12 @@ class vectorIC(vector):
     def size(self):
         return self.getNdArray().size
 
-    def norm(self, N=2):
+    def norm(self,nrm=2):
         """Function to compute vector N-norm using Numpy"""
-        return np.linalg.norm(self.getNdArray().flatten(), ord=N)
+        if nrm!="L1" and nrm==1:
+            self._norm="L1"
+        c0,c1,c2=self.calcC0C1C2()
+        return np.sum(c0)
 
     def zero(self):
         """Function to zero out a vector"""
@@ -713,6 +752,8 @@ class vectorIC(vector):
         # Checking if a vector space was provided
         if vec_clone.getNdArray().size == 0:
             vec_clone.arr = np.zeros(vec_clone.shape, dtype=self.getNdArray().dtype)
+        vec_clone._norm=self._norm
+        vec_clone._transition=self._transition
         return vec_clone
 
     def cloneSpace(self):
@@ -941,7 +982,7 @@ class vectorIC(vector):
         )
         return self
 
-
+ 
 # TODO add methods
 class vectorOC(vector):
     """Out-of-core python vector class"""
@@ -1006,18 +1047,18 @@ class vectorOC(vector):
         ndarray, _ = sep_util.read_file(self.vecfile)
         return ndarray
 
-    def norm(self, N=2):
+    def norm(self, nrm=2):
         """Function to compute vector N-norm"""
-        if N != 2:
-            raise NotImplementedError("Norm different than L2 not currently supported")
-        # Running Solver_ops to compute norm value
+        if self._norm!="L1" and nrm==1:
+            self._norm="L1"
+        c0,c1,c2=self.calcC0C1C2()
+
         find = re_dpr.search(
             sys_util.RunShellCmd(
-                "Solver_ops file1=%s op=dot" % self.vecfile, get_stat=False
-            )[0]
+                "Solver_ops file1=%s op=sum" % self.vecfile, get_stat=False)[0]
         )
         if find:
-            return np.sqrt(float(find.group(1)))
+            return float(find.group(1))
         else:
             raise ValueError("ERROR! Trouble parsing dot product!")
         return
@@ -1107,6 +1148,8 @@ class vectorOC(vector):
                 fid.write("in='%s\n'" % tmp_bin)
         # By default the clone file is going to be removed once the vector is deleted
         vec_clone.remove_file = True
+        vec_clone._norm=self._norm
+        vec_clone._transition=self._transition
         return vec_clone
 
     def cloneSpace(self):
@@ -1116,6 +1159,8 @@ class vectorOC(vector):
         vec_space.vecfile = None
         vec_space.binfile = None
         vec_space.remove_file = False
+        vec_space._norm=self._norm
+        vec_space._transition=self._transition
         return vec_space
 
     def checkSame(self, vec2):
@@ -1251,7 +1296,7 @@ class vectorOC(vector):
         cmd = "Solver_ops file1=%s file2=%s op=multiply" % (self.vecfile, vec2.vecfile)
         sys_util.RunShellCmd(cmd, get_stat=False, get_output=False)
         return
-
+    
     def isDifferent(self, vec2):
         """Function to check if two vectors are identical using M5 hash scheme"""
         # Checking whether the input is a vector or not
